@@ -46,15 +46,46 @@ Install those with Helm or a GitOps tool such as Argo CD or Flux.
 | Proxmox VE | >= 8.4, for the `import` content type on the image datastore |
 | Talos | >= v1.14, for the multi-document machine config |
 
-The caller configures both providers. The Proxmox API token must be allowed to
-create VMs and to download files to the image datastore.
+The caller configures both providers.
+
+## Proxmox API token
+
+The module talks to Proxmox only through the API, so an API token is enough and
+no SSH access is needed.
+
+Create a user, give it a role and create a token on the Proxmox host:
+
+```sh
+pveum user add tofu@pve --comment "OpenTofu"
+pveum acl modify / --users tofu@pve --roles Administrator
+pveum user token add tofu@pve tofu --privsep 0
+```
+
+The last command prints the token secret once, as `value`. With `--privsep 0`
+the token has the same permissions as its user.
+
+The `Administrator` role on `/` grants more than the module needs. A narrower
+role needs at least the VM, datastore and `SDN.Use` privileges. Image downloads
+also need `Sys.AccessNetwork` on the node or `Sys.Modify` on `/`. The
+[bpg/proxmox docs](https://github.com/bpg/terraform-provider-proxmox/blob/main/docs/index.md)
+list an example role.
+
+Export the endpoint and the token before `tofu plan` or `tofu apply`:
+
+```sh
+export PROXMOX_VE_ENDPOINT='https://192.168.1.10:8006/'
+export PROXMOX_VE_API_TOKEN='tofu@pve!tofu=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
+```
+
+The token value must be in single quotes. In double quotes, bash and zsh treat
+the `!` as history expansion.
 
 ## Usage
 
 ```hcl
+# Endpoint and token come from the environment.
 provider "proxmox" {
-  endpoint = "https://192.168.1.10:8006/"
-  # token from PROXMOX_VE_API_TOKEN
+  insecure = true # self-signed certificate
 }
 
 provider "talos" {}

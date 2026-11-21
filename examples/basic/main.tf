@@ -15,10 +15,11 @@ terraform {
   }
 }
 
+# Auth from environment, see README "Proxmox API token":
+#   export PROXMOX_VE_ENDPOINT='https://192.168.1.10:8006/'
+#   export PROXMOX_VE_API_TOKEN='tofu@pve!tofu=<secret>'
 provider "proxmox" {
-  endpoint = "https://192.168.1.10:8006/"
-  # API token from PROXMOX_VE_API_TOKEN ("user@realm!tokenid=secret").
-  insecure = true # self-signed PVE certificate
+  insecure = true # self-signed certificate
 }
 
 provider "talos" {}
