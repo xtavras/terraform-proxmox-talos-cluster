@@ -204,13 +204,10 @@ The module is used with this combination. Other versions are untested.
 | Talos | v1.14.3, including the rolling upgrade from v1.14.1 |
 | Kubernetes | v1.35.10 |
 | OpenTofu | 1.13 |
+| HashiCorp Terraform | 1.17, cluster creation |
 | bpg/proxmox | 0.123.x |
 | siderolabs/talos | 0.12.x |
 | Calico | v3.33, nftables and VXLAN, installed separately |
-
-HashiCorp Terraform is untested. The module uses no OpenTofu-only features:
-ephemeral resources and write-only attributes need Terraform >= 1.11, the same
-minimum as OpenTofu, so it **should** work.
 
 ## Development
 
