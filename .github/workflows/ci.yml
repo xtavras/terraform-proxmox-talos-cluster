@@ -1,0 +1,45 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: 1.13.x
+
+      - name: fmt
+        run: tofu fmt -recursive -check -diff
+
+      - name: validate module
+        run: |
+          tofu init -backend=false
+          tofu validate
+
+      - name: validate examples
+        run: |
+          for dir in examples/*/; do
+            echo "::group::$dir"
+            tofu -chdir="$dir" init -backend=false
+            tofu -chdir="$dir" validate
+            echo "::endgroup::"
+          done
+
+      - name: unit tests (mocked providers)
+        run: tofu test
+
+      - name: machines.tf is up to date
+        run: |
+          scripts/gen-machines.sh
+          tofu fmt machines.tf
+          git diff --exit-code machines.tf
