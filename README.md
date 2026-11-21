@@ -150,7 +150,7 @@ Examples:
 | `talos_extensions` | `list(string)` | `["siderolabs/qemu-guest-agent"]` | Official system extensions |
 | `controlplane` | `object` | required | `count` (1, 3 or 5, default 3), `cpu` (2), `memory_mb` (2048), `disk_gb` (20), `vm_id_start`, `ip_start` |
 | `workers` | `object` | required | `count` (0 to 10, default 3), `cpu`, `memory_mb`, `disk_gb`, `vm_id_start`, `ip_start`. With `count = 0` the control planes run workloads |
-| `network` | `object` | required | `cidr`, `gateway`, `dns_servers` (`[gateway]`), `dns_domain` (`invalid`: when it's empty, Proxmox copies the host's search domain into cloud-init), `vip` (`null` uses the first control plane IP), `bridge` (`vmbr0`), `vlan_id`, `mac_prefix` (`null` lets Proxmox assign MACs), `pod_cidr` (`10.244.0.0/16`), `service_cidr` (`10.96.0.0/12`) |
+| `network` | `object` | required | `cidr`, `gateway`, `dns_servers` (`[gateway]`), `dns_domain` (`invalid`: when it's empty, Proxmox copies the host's search domain into cloud-init), `vip` (`null` uses the first control plane IP), `bridge` (`vmbr0`), `vlan_id`, `mac_prefix` (`null` lets Proxmox assign MACs, see [Fixed MAC addresses](#fixed-mac-addresses)), `pod_cidr` (`10.244.0.0/16`), `service_cidr` (`10.96.0.0/12`) |
 | `cni` | `string` | `"none"` | `"none"` or `"flannel"` |
 | `kube_proxy` | `bool` | `true` | Set `false` only for a CNI that replaces kube-proxy |
 | `proxmox` | `object` | required | `node_name`, `vm_datastore` (`local-lvm`), `image_datastore` (`local`, needs the `import` content type) |
@@ -158,6 +158,35 @@ Examples:
 
 The plan fails when the IP or VM ID ranges of the two pools overlap, or when
 the VIP is also a node IP.
+
+### Fixed MAC addresses
+
+By default Proxmox gives each VM a random MAC when it creates the VM. To use
+your own prefix, for example for DHCP reservations, set `network.mac_prefix` to
+the first 4 octets (8 hex digits). The last 2 octets are the VM ID:
+
+```hcl
+network = {
+  cidr       = "192.168.1.0/24"
+  gateway    = "192.168.1.1"
+  mac_prefix = "de:ad:be:ef" # also "dead:beef" or "DEADBEEF"
+}
+```
+
+| Node | VM ID | MAC |
+|---|---|---|
+| `demo-cp-01` | 1001 (`0x03E9`) | `DE:AD:BE:EF:03:E9` |
+| `demo-w-01` | 1011 (`0x03F3`) | `DE:AD:BE:EF:03:F3` |
+
+The first octet must be even, because an odd first octet makes a multicast
+address. With the second-lowest bit also set (first hex pair ending in 2, 6, A
+or E, as in `DE`), the address is locally administered and can't clash with a
+vendor's MAC.
+
+On a running cluster, a new `mac_prefix` updates every VM in place and the
+Talos link alias follows in the same apply. Proxmox swaps the NICs of all nodes
+at the same time, so every node loses its network for a few seconds. Removing
+`mac_prefix` changes nothing: the VMs keep their current MACs.
 
 ## Outputs
 
@@ -222,8 +251,10 @@ More worker slots need three changes:
 - Removing a node does not reset it, remove its etcd member or delete its
   Kubernetes node. A control plane must leave etcd with
   `talosctl etcd remove-member` before it is removed.
-- A change to `network.mac_prefix`, `node_name_prefix`, `vm_id_start` or
-  `ip_start` on an existing cluster replaces the affected VMs.
+- A change to `node_name_prefix` or `vm_id_start` on a running cluster replaces
+  the affected VMs.
+- `ip_start` must not change on a running cluster. The nodes keep the IP they
+  booted with, so the module can't reach them at the new one.
 - At most 5 control planes and 10 workers, see
   [Upgrade slots](#upgrade-slots-in-machinestf).
 

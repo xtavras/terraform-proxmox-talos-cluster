@@ -17,14 +17,19 @@ locals {
         cpu       = local.pools[role].cpu
         memory_mb = local.pools[role].memory_mb
         disk_gb   = local.pools[role].disk_gb
-        mac = var.network.mac_prefix == null ? null : upper(format("%s:%02x:%02x",
-          var.network.mac_prefix,
+        mac = local.mac_prefix == null ? null : upper(format("%s:%02x:%02x",
+          local.mac_prefix,
           floor((local.pools[role].vm_id_start + i) / 256) % 256,
           (local.pools[role].vm_id_start + i) % 256,
         ))
       }
     ]
   ])
+
+  # "dead:beef" -> "de:ad:be:ef"
+  mac_prefix = var.network.mac_prefix == null ? null : join(":",
+    regexall("..", lower(replace(var.network.mac_prefix, "/[:.-]/", "")))
+  )
 
   nodes        = { for n in local.node_list : n.name => n }
   cp_names     = [for n in local.node_list : n.name if n.role == "controlplane"]

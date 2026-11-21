@@ -73,6 +73,43 @@ run "deterministic_mac" {
   }
 }
 
+run "mac_prefix_any_separator" {
+  command = plan
+
+  variables {
+    network = { cidr = "10.0.0.0/24", gateway = "10.0.0.1", mac_prefix = "dead:beef" }
+  }
+
+  assert {
+    # vm_id 1001 = 0x03E9
+    condition     = output.nodes["test-cp-01"].mac == "DE:AD:BE:EF:03:E9"
+    error_message = "unexpected MAC: ${output.nodes["test-cp-01"].mac}"
+  }
+}
+
+run "mac_prefix_no_separator" {
+  command = plan
+
+  variables {
+    network = { cidr = "10.0.0.0/24", gateway = "10.0.0.1", mac_prefix = "DEADBEEF" }
+  }
+
+  assert {
+    condition     = output.nodes["test-cp-01"].mac == "DE:AD:BE:EF:03:E9"
+    error_message = "unexpected MAC: ${output.nodes["test-cp-01"].mac}"
+  }
+}
+
+run "rejects_multicast_mac_prefix" {
+  command = plan
+
+  variables {
+    network = { cidr = "10.0.0.0/24", gateway = "10.0.0.1", mac_prefix = "df:ad:be:ef" }
+  }
+
+  expect_failures = [var.network]
+}
+
 run "rejects_bad_mac_prefix" {
   command = plan
 

@@ -119,10 +119,13 @@ variable "network" {
                     make sense). null = use the first control plane IP.
       bridge        Proxmox bridge
       vlan_id       VLAN tag on the VM NIC (null = untagged)
-      mac_prefix    first 4 octets for deterministic MACs, e.g. "BC:24:11:00":
-                    MAC = <prefix>:<vm_id as 2 bytes>. null = Proxmox assigns
-                    a random MAC at creation (stable for the VM's lifetime).
-                    Changing it on an existing cluster changes every NIC.
+      mac_prefix    first 4 octets (8 hex digits) for deterministic MACs.
+                    Separators are optional: "DE:AD:BE:EF", "dead:beef" and
+                    "deadbeef" are the same prefix. MAC = <prefix>:<vm_id as
+                    2 bytes>. The first octet must be even (unicast).
+                    null = Proxmox assigns a random MAC at creation (stable
+                    for the VM's lifetime). Changing it on a running cluster
+                    swaps all NICs at once: a few seconds without network.
       pod_cidr      must match the CNI's IP pool (e.g. Calico)
       service_cidr  Kubernetes service network
   EOT
@@ -140,8 +143,14 @@ variable "network" {
   })
 
   validation {
-    condition     = var.network.mac_prefix == null || can(regex("^([0-9A-Fa-f]{2}:){3}[0-9A-Fa-f]{2}$", coalesce(var.network.mac_prefix, "-")))
-    error_message = "network.mac_prefix must be 4 octets like \"BC:24:11:00\"."
+    condition     = var.network.mac_prefix == null || can(regex("^[0-9A-Fa-f]{8}$", replace(coalesce(var.network.mac_prefix, "-"), "/[:.-]/", "")))
+    error_message = "network.mac_prefix must be 8 hex digits, e.g. \"DE:AD:BE:EF\" or \"dead:beef\"."
+  }
+
+  validation {
+    # Odd first octet = multicast MAC.
+    condition     = !can(regex("^[0-9A-Fa-f]{8}$", replace(coalesce(var.network.mac_prefix, "-"), "/[:.-]/", ""))) || parseint(substr(replace(coalesce(var.network.mac_prefix, "00"), "/[:.-]/", ""), 0, 2), 16) % 2 == 0
+    error_message = "network.mac_prefix must start with an even octet (unicast), e.g. \"DE\" not \"DF\"."
   }
 }
 

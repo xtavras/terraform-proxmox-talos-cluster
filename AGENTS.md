@@ -35,7 +35,9 @@ Users apply new module versions to live clusters, so plan every change as an
   `ignore_changes` freezes the config-generation contract at creation. Keep it;
   dropping it regenerates secrets or changes the config format on upgrade.
 - **Identity**: node names, `vm_id`, IPs and MACs derive from pool inputs.
-  Any change to that derivation replaces VMs: a **breaking** change.
+  A changed name or `vm_id` replaces VMs, a changed IP strands running nodes,
+  and a changed MAC swaps all NICs at once. Any change to that derivation is a
+  **breaking** change.
 - **Reboots** belong to Talos: VMs keep `reboot_after_update = false` and
   `ignore_changes = [disk[0].import_from]`.
 - A machine-config change re-applies to every node; state the expected plan

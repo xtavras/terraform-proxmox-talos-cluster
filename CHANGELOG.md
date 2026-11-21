@@ -7,6 +7,15 @@ contain breaking changes.
 
 ## [Unreleased]
 
+### Changed
+
+- `network.mac_prefix` accepts the 8 hex digits with or without separators:
+  `"DE:AD:BE:EF"`, `"dead:beef"` and `"deadbeef"` are the same prefix. A
+  multicast prefix (odd first octet) fails validation.
+- README: changing `mac_prefix` on a running cluster updates the VMs in place,
+  it doesn't replace them. Changing `ip_start` is not supported on a running
+  cluster.
+
 ### Fixed
 
 - VM tags no longer contain duplicates. With `name = "talos"`, Proxmox dropped
