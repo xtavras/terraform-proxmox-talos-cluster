@@ -8,3 +8,6 @@ crash.log
 *.tfvars
 !examples/**/*.tfvars.example
 generated/
+
+# local agent handoff notes
+HANDOFF.md
