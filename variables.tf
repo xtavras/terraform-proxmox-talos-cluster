@@ -112,6 +112,9 @@ variable "network" {
       cidr          node network; node IPs are cidrhost(cidr, <pool>.ip_start + i)
       gateway       default gateway of the nodes
       dns_servers   defaults to [gateway]
+      dns_domain    cloud-init search domain. Proxmox copies the host's search
+                    domain when it's empty, so the default is "invalid", a
+                    name reserved by RFC 2606. Talos doesn't use it.
       vip           shared layer-2 VIP for the Kubernetes API (needs >1 CP to
                     make sense). null = use the first control plane IP.
       bridge        Proxmox bridge
@@ -127,6 +130,7 @@ variable "network" {
     cidr         = string
     gateway      = string
     dns_servers  = optional(list(string))
+    dns_domain   = optional(string, "invalid")
     vip          = optional(string)
     bridge       = optional(string, "vmbr0")
     vlan_id      = optional(number)

@@ -5,7 +5,20 @@ All notable changes to this module are documented here. The format follows
 [Semantic Versioning](https://semver.org/). Before 1.0.0, minor versions may
 contain breaking changes.
 
-## [0.1.0] - Unreleased
+## [Unreleased]
+
+### Fixed
+
+- VM tags no longer contain duplicates. With `name = "talos"`, Proxmox dropped
+  the duplicate tag and every plan showed a change.
+- The cloud-init drive no longer gets the Proxmox host's DNS search domain. New
+  input `network.dns_domain`, default `invalid` (RFC 2606). On an existing
+  cluster, the next apply updates the cloud-init drive of every VM in place,
+  without a reboot.
+- The reboot advice for CPU, RAM and disk changes: `qm reboot`, not
+  `talosctl reboot`, which doesn't apply pending Proxmox changes.
+
+## [0.1.0] - 2026-11-21
 
 First public release (proof of concept).
 

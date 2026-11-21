@@ -150,7 +150,7 @@ Examples:
 | `talos_extensions` | `list(string)` | `["siderolabs/qemu-guest-agent"]` | Official system extensions |
 | `controlplane` | `object` | required | `count` (1, 3 or 5, default 3), `cpu` (2), `memory_mb` (2048), `disk_gb` (20), `vm_id_start`, `ip_start` |
 | `workers` | `object` | required | `count` (0 to 10, default 3), `cpu`, `memory_mb`, `disk_gb`, `vm_id_start`, `ip_start`. With `count = 0` the control planes run workloads |
-| `network` | `object` | required | `cidr`, `gateway`, `dns_servers` (`[gateway]`), `vip` (`null` uses the first control plane IP), `bridge` (`vmbr0`), `vlan_id`, `mac_prefix` (`null` lets Proxmox assign MACs), `pod_cidr` (`10.244.0.0/16`), `service_cidr` (`10.96.0.0/12`) |
+| `network` | `object` | required | `cidr`, `gateway`, `dns_servers` (`[gateway]`), `dns_domain` (`invalid`: when it's empty, Proxmox copies the host's search domain into cloud-init), `vip` (`null` uses the first control plane IP), `bridge` (`vmbr0`), `vlan_id`, `mac_prefix` (`null` lets Proxmox assign MACs), `pod_cidr` (`10.244.0.0/16`), `service_cidr` (`10.96.0.0/12`) |
 | `cni` | `string` | `"none"` | `"none"` or `"flannel"` |
 | `kube_proxy` | `bool` | `true` | Set `false` only for a CNI that replaces kube-proxy |
 | `proxmox` | `object` | required | `node_name`, `vm_datastore` (`local-lvm`), `image_datastore` (`local`, needs the `import` content type) |
@@ -192,8 +192,10 @@ the VIP is also a node IP.
   workers with the highest numbers. Those nodes must be drained and deleted with
   `kubectl delete node` first.
 - **CPU, RAM and disk changes** update the VM config without a reboot
-  (`reboot_after_update = false`). Each changed node must be rebooted by hand,
-  one at a time.
+  (`reboot_after_update = false`). Proxmox applies them only when the VM starts
+  again. Restart each changed VM by hand, one at a time, with
+  `qm reboot <vm_id>` on the Proxmox host. `talosctl reboot` is not enough: it
+  uses kexec inside the running VM, so the pending change stays pending.
 - **Manual Talos changes**: the module owns `talosctl upgrade`, `upgrade-k8s` and
   `apply-config`. The next `apply` reverts changes made with them by hand.
 

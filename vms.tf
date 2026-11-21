@@ -5,14 +5,17 @@ resource "proxmox_virtual_environment_vm" "node" {
   vm_id       = each.value.vm_id
   name        = each.key
   description = "Talos ${each.value.role} of cluster ${var.name} (managed by OpenTofu)"
-  tags        = ["talos", var.name, each.value.role]
+  # distinct: Proxmox drops duplicate tags, which would show as a
+  # change in every plan (e.g. name = "talos").
+  tags = distinct(["talos", var.name, each.value.role])
 
   on_boot         = true
   started         = true
   stop_on_destroy = true
   # Never let the provider reboot nodes on its own (e.g. after a CPU/RAM
-  # change): reboots must be rolling. Reboot changed nodes one at a time,
-  # e.g. 'talosctl -n <ip> reboot'.
+  # change): reboots must be rolling. Restart changed VMs one at a time with
+  # 'qm reboot <vm_id>'. 'talosctl reboot' uses kexec inside the running VM,
+  # so Proxmox never applies the pending change.
   reboot_after_update = false
 
   machine       = "q35"
@@ -75,6 +78,8 @@ resource "proxmox_virtual_environment_vm" "node" {
     }
     dns {
       servers = local.dns_servers
+      # Without a domain, Proxmox copies the host's search domain.
+      domain = var.network.dns_domain
     }
   }
 

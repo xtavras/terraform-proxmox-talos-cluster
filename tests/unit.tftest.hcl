@@ -170,3 +170,21 @@ run "rejects_overlapping_vm_ids" {
 
   expect_failures = [talos_machine_secrets.this]
 }
+
+run "vm_tags_and_dns_domain" {
+  command = plan
+
+  # The cluster name equals the fixed "talos" tag.
+  variables {
+    name = "talos"
+  }
+
+  assert {
+    condition     = proxmox_virtual_environment_vm.node["talos-cp-01"].tags == tolist(["talos", "controlplane"])
+    error_message = "tags must not repeat: ${jsonencode(proxmox_virtual_environment_vm.node["talos-cp-01"].tags)}"
+  }
+  assert {
+    condition     = proxmox_virtual_environment_vm.node["talos-w-01"].initialization[0].dns[0].domain == "invalid"
+    error_message = "cloud-init DNS domain must be set, or Proxmox copies the host's"
+  }
+}
